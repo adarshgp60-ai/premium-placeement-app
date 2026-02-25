@@ -1,7 +1,8 @@
-﻿import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
-import { getSelectedOrLatestEntry, setSelectedAnalysisId } from "../lib/storage";
+import { buildDefaultSkillConfidenceMap, flattenExtractedSkills } from "../lib/analysis";
+import { getSelectedOrLatestEntry, setSelectedAnalysisId, updateHistoryEntry } from "../lib/storage";
 
 function ReadinessRing({ score }) {
   const radius = 64;
@@ -33,13 +34,194 @@ function ReadinessRing({ score }) {
   );
 }
 
+function clampScore(score) {
+  return Math.max(0, Math.min(100, score));
+}
+
+function computeLiveScore(baseScore, confidenceMap, skills) {
+  const delta = skills.reduce((acc, skill) => {
+    const value = confidenceMap[skill] || "practice";
+    return acc + (value === "know" ? 2 : -2);
+  }, 0);
+  return clampScore(baseScore + delta);
+}
+
+function normalizeEntry(entry) {
+  const skills = flattenExtractedSkills(entry.extractedSkills || {});
+  const defaultMap = buildDefaultSkillConfidenceMap(entry.extractedSkills || {});
+  const skillConfidenceMap = { ...defaultMap, ...(entry.skillConfidenceMap || {}) };
+  const baseReadinessScore = typeof entry.baseReadinessScore === "number" ? entry.baseReadinessScore : entry.readinessScore;
+  const readinessScore = computeLiveScore(baseReadinessScore, skillConfidenceMap, skills);
+
+  return {
+    ...entry,
+    baseReadinessScore,
+    skillConfidenceMap,
+    readinessScore
+  };
+}
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function buildPlanText(entry) {
+  return entry.plan
+    .map((day) => {
+      const lines = day.tasks.map((task) => `- ${task}`).join("\n");
+      return `${day.day}: ${day.focus}\n${lines}`;
+    })
+    .join("\n\n");
+}
+
+function buildChecklistText(entry) {
+  return Object.entries(entry.checklist)
+    .map(([round, items]) => `${round}\n${items.map((item) => `- ${item}`).join("\n")}`)
+    .join("\n\n");
+}
+
+function buildQuestionsText(entry) {
+  return entry.questions.map((question, index) => `${index + 1}. ${question}`).join("\n");
+}
+
+function buildExportText(entry) {
+  const skillsText = Object.entries(entry.extractedSkills)
+    .map(([category, skills]) => `${category}: ${skills.join(", ")}`)
+    .join("\n");
+
+  const confidenceText = flattenExtractedSkills(entry.extractedSkills)
+    .map((skill) => `- ${skill}: ${entry.skillConfidenceMap[skill] === "know" ? "I know this" : "Need practice"}`)
+    .join("\n");
+
+  return [
+    `${entry.company} - ${entry.role}`,
+    `Readiness Score: ${entry.readinessScore}/100 (Base: ${entry.baseReadinessScore}/100)`,
+    "",
+    "Key Skills Extracted",
+    skillsText,
+    "",
+    "Skill Confidence",
+    confidenceText,
+    "",
+    "Round-wise Preparation Checklist",
+    buildChecklistText(entry),
+    "",
+    "7-day Plan",
+    buildPlanText(entry),
+    "",
+    "10 Likely Interview Questions",
+    buildQuestionsText(entry)
+  ].join("\n");
+}
+
+function downloadAsText(filename, content) {
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 export function ResultsPage() {
   const [searchParams] = useSearchParams();
   const selectedId = searchParams.get("id") || "";
-  const entry = getSelectedOrLatestEntry(selectedId);
+  const [feedback, setFeedback] = useState("");
+  const [entry, setEntry] = useState(() => {
+    const raw = getSelectedOrLatestEntry(selectedId);
+    return raw ? normalizeEntry(raw) : null;
+  });
 
-  if (selectedId) {
-    setSelectedAnalysisId(selectedId);
+  useEffect(() => {
+    const raw = getSelectedOrLatestEntry(selectedId);
+    if (!raw) {
+      setEntry(null);
+      return;
+    }
+
+    const normalized = normalizeEntry(raw);
+    setEntry(normalized);
+    updateHistoryEntry(normalized.id, {
+      baseReadinessScore: normalized.baseReadinessScore,
+      skillConfidenceMap: normalized.skillConfidenceMap,
+      readinessScore: normalized.readinessScore
+    });
+  }, [selectedId]);
+
+  useEffect(() => {
+    if (selectedId) {
+      setSelectedAnalysisId(selectedId);
+    }
+  }, [selectedId]);
+
+  const weakSkills = useMemo(() => {
+    if (!entry) {
+      return [];
+    }
+
+    return flattenExtractedSkills(entry.extractedSkills)
+      .filter((skill) => (entry.skillConfidenceMap[skill] || "practice") === "practice")
+      .slice(0, 3);
+  }, [entry]);
+
+  function updateSkill(skill, value) {
+    if (!entry) {
+      return;
+    }
+
+    const nextConfidenceMap = { ...entry.skillConfidenceMap, [skill]: value };
+    const allSkills = flattenExtractedSkills(entry.extractedSkills);
+    const nextScore = computeLiveScore(entry.baseReadinessScore, nextConfidenceMap, allSkills);
+
+    const nextEntry = {
+      ...entry,
+      skillConfidenceMap: nextConfidenceMap,
+      readinessScore: nextScore
+    };
+
+    setEntry(nextEntry);
+    updateHistoryEntry(entry.id, {
+      skillConfidenceMap: nextConfidenceMap,
+      readinessScore: nextScore,
+      baseReadinessScore: entry.baseReadinessScore
+    });
+  }
+
+  async function handleCopy(kind) {
+    if (!entry) {
+      return;
+    }
+
+    let text = "";
+    if (kind === "plan") {
+      text = buildPlanText(entry);
+    } else if (kind === "checklist") {
+      text = buildChecklistText(entry);
+    } else {
+      text = buildQuestionsText(entry);
+    }
+
+    const ok = await copyText(text);
+    setFeedback(ok ? "Copied to clipboard." : "Clipboard blocked. Copy manually from the page.");
+  }
+
+  function handleDownload() {
+    if (!entry) {
+      return;
+    }
+
+    const safeCompany = entry.company.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+    const safeRole = entry.role.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+    downloadAsText(`${safeCompany}_${safeRole}_readiness.txt`, buildExportText(entry));
+    setFeedback("TXT downloaded.");
   }
 
   if (!entry) {
@@ -76,11 +258,26 @@ export function ResultsPage() {
             <div key={category}>
               <p className="text-sm font-semibold text-slate-700">{category}</p>
               <div className="mt-2 flex flex-wrap gap-2">
-                {skills.map((skill) => (
-                  <span key={`${category}-${skill}`} className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                    {skill}
-                  </span>
-                ))}
+                {skills.map((skill) => {
+                  const state = entry.skillConfidenceMap[skill] || "practice";
+                  return (
+                    <div key={`${category}-${skill}`} className="rounded-full border border-primary/30 bg-primary/5 px-2 py-1 text-xs">
+                      <span className="px-1 font-semibold text-primary">{skill}</span>
+                      <button
+                        onClick={() => updateSkill(skill, "know")}
+                        className={`ml-1 rounded-full px-2 py-1 ${state === "know" ? "bg-primary text-white" : "text-slate-600 hover:bg-slate-100"}`}
+                      >
+                        I know this
+                      </button>
+                      <button
+                        onClick={() => updateSkill(skill, "practice")}
+                        className={`ml-1 rounded-full px-2 py-1 ${state === "practice" ? "bg-amber-100 text-amber-900" : "text-slate-600 hover:bg-slate-100"}`}
+                      >
+                        Need practice
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ))}
@@ -135,6 +332,41 @@ export function ResultsPage() {
               </li>
             ))}
           </ol>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Export Tools</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => handleCopy("plan")} className="rounded-lg border border-primary px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/5">
+              Copy 7-day plan
+            </button>
+            <button onClick={() => handleCopy("checklist")} className="rounded-lg border border-primary px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/5">
+              Copy round checklist
+            </button>
+            <button onClick={() => handleCopy("questions")} className="rounded-lg border border-primary px-3 py-2 text-sm font-semibold text-primary hover:bg-primary/5">
+              Copy 10 questions
+            </button>
+            <button onClick={handleDownload} className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white hover:bg-primary/90">
+              Download as TXT
+            </button>
+          </div>
+          {feedback ? <p className="text-sm text-slate-600">{feedback}</p> : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Action Next</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-slate-700">
+            Top weak skills: {weakSkills.length > 0 ? weakSkills.join(", ") : "No weak skills marked"}.
+          </p>
+          <p className="mt-2 text-sm font-medium text-primary">Start Day 1 plan now.</p>
         </CardContent>
       </Card>
     </section>

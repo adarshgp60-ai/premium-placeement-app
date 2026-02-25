@@ -1,4 +1,4 @@
-﻿const HISTORY_KEY = "placement_history_v1";
+const HISTORY_KEY = "placement_history_v1";
 const SELECTED_ID_KEY = "placement_selected_analysis_id";
 
 export function getHistory() {
@@ -19,6 +19,32 @@ export function saveHistoryEntry(entry) {
   const next = [entry, ...current].slice(0, 50);
   localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
   localStorage.setItem(SELECTED_ID_KEY, entry.id);
+}
+
+export function updateHistoryEntry(entryId, updater) {
+  if (!entryId) {
+    return null;
+  }
+
+  const current = getHistory();
+  let updatedEntry = null;
+  const next = current.map((entry) => {
+    if (entry.id !== entryId) {
+      return entry;
+    }
+
+    const patch = typeof updater === "function" ? updater(entry) : updater;
+    updatedEntry = { ...entry, ...patch };
+    return updatedEntry;
+  });
+
+  if (!updatedEntry) {
+    return null;
+  }
+
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+  localStorage.setItem(SELECTED_ID_KEY, updatedEntry.id);
+  return updatedEntry;
 }
 
 export function getSelectedAnalysisId() {

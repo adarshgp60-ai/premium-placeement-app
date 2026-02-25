@@ -1,4 +1,4 @@
-﻿export const SKILL_CATALOG = {
+export const SKILL_CATALOG = {
   "Core CS": [
     { name: "DSA", regex: /\b(dsa|data structures?|algorithms?)\b/i },
     { name: "OOP", regex: /\b(oop|object[-\s]?oriented)\b/i },
@@ -60,6 +60,17 @@ function hasAny(extractedSkills, values) {
 
 function unique(list) {
   return [...new Set(list)];
+}
+
+export function flattenExtractedSkills(extractedSkills) {
+  return unique(Object.values(extractedSkills || {}).flat());
+}
+
+export function buildDefaultSkillConfidenceMap(extractedSkills) {
+  return flattenExtractedSkills(extractedSkills).reduce((acc, skill) => {
+    acc[skill] = "practice";
+    return acc;
+  }, {});
 }
 
 export function extractSkills(jdText) {
@@ -305,7 +316,8 @@ export function createAnalysisPayload({ company, role, jdText }) {
   const checklist = buildChecklist(extractedSkills);
   const plan = buildSevenDayPlan(extractedSkills);
   const questions = buildLikelyQuestions(extractedSkills);
-  const readinessScore = calculateReadinessScore({ extractedSkills, company, role, jdText });
+  const baseReadinessScore = calculateReadinessScore({ extractedSkills, company, role, jdText });
+  const skillConfidenceMap = buildDefaultSkillConfidenceMap(extractedSkills);
 
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -317,6 +329,8 @@ export function createAnalysisPayload({ company, role, jdText }) {
     plan,
     checklist,
     questions,
-    readinessScore
+    baseReadinessScore,
+    readinessScore: baseReadinessScore,
+    skillConfidenceMap
   };
 }
