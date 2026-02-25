@@ -9,10 +9,6 @@ function PageFrame({ title }) {
   );
 }
 
-export function DashboardPage() {
-  return <PageFrame title="Dashboard" />;
-}
-
 export function PracticePage() {
   return <PageFrame title="Practice" />;
 }

@@ -4,7 +4,8 @@ import { Navigate, RouterProvider, createBrowserRouter } from "react-router-dom"
 import "./index.css";
 import { AppShell } from "./components/AppShell";
 import { LandingPage } from "./pages/LandingPage";
-import { AssessmentsPage, DashboardPage, PracticePage, ProfilePage, ResourcesPage } from "./pages/PlaceholderPages";
+import { DashboardPage } from "./pages/DashboardPage";
+import { AssessmentsPage, PracticePage, ProfilePage, ResourcesPage } from "./pages/PlaceholderPages";
 
 const router = createBrowserRouter([
   {
