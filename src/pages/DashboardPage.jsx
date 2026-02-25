@@ -1,186 +1,155 @@
-import React from "react";
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from "recharts";
+﻿import React, { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { createAnalysisPayload, extractSkills } from "../lib/analysis";
+import { getSelectedOrLatestEntry, saveHistoryEntry } from "../lib/storage";
 
-const radarData = [
-  { skill: "DSA", score: 75 },
-  { skill: "System Design", score: 60 },
-  { skill: "Communication", score: 80 },
-  { skill: "Resume", score: 85 },
-  { skill: "Aptitude", score: 70 }
-];
-
-const assessments = [
-  { title: "DSA Mock Test", time: "Tomorrow, 10:00 AM" },
-  { title: "System Design Review", time: "Wed, 2:00 PM" },
-  { title: "HR Interview Prep", time: "Friday, 11:00 AM" }
-];
-
-const weekDays = [
-  { day: "Mon", active: true },
-  { day: "Tue", active: true },
-  { day: "Wed", active: false },
-  { day: "Thu", active: true },
-  { day: "Fri", active: false },
-  { day: "Sat", active: true },
-  { day: "Sun", active: false }
-];
-
-function OverallReadiness() {
-  const score = 72;
-  const max = 100;
-  const radius = 68;
+function ReadinessRing({ score }) {
+  const radius = 62;
   const circumference = 2 * Math.PI * radius;
-  const progressOffset = circumference - (score / max) * circumference;
+  const offset = circumference - (score / 100) * circumference;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Overall Readiness</CardTitle>
-      </CardHeader>
-      <CardContent className="flex items-center justify-center">
-        <div className="relative h-44 w-44">
-          <svg className="h-full w-full -rotate-90" viewBox="0 0 160 160" aria-label="Readiness score chart">
-            <circle cx="80" cy="80" r={radius} stroke="rgb(226 232 240)" strokeWidth="12" fill="none" />
-            <circle
-              cx="80"
-              cy="80"
-              r={radius}
-              stroke="hsl(245 58% 51%)"
-              strokeWidth="12"
-              fill="none"
-              strokeLinecap="round"
-              strokeDasharray={circumference}
-              strokeDashoffset={progressOffset}
-              style={{ transition: "stroke-dashoffset 700ms ease-in-out" }}
-            />
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <p className="text-3xl font-bold text-slate-900">{score}/100</p>
-            <p className="text-sm text-slate-500">Readiness Score</p>
+    <div className="relative h-40 w-40">
+      <svg className="h-full w-full -rotate-90" viewBox="0 0 150 150" aria-label="Readiness score">
+        <circle cx="75" cy="75" r={radius} stroke="rgb(226 232 240)" strokeWidth="12" fill="none" />
+        <circle
+          cx="75"
+          cy="75"
+          r={radius}
+          stroke="hsl(245 58% 51%)"
+          strokeWidth="12"
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          style={{ transition: "stroke-dashoffset 650ms ease-in-out" }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <p className="text-3xl font-bold text-slate-900">{score}</p>
+        <p className="text-xs text-slate-500">Readiness Score</p>
+      </div>
+    </div>
+  );
+}
+
+function SkillGroups({ extractedSkills }) {
+  return (
+    <div className="space-y-4">
+      {Object.entries(extractedSkills).map(([category, skills]) => (
+        <div key={category}>
+          <p className="text-sm font-semibold text-slate-700">{category}</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {skills.map((skill) => (
+              <span key={`${category}-${skill}`} className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                {skill}
+              </span>
+            ))}
           </div>
         </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function SkillBreakdown() {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Skill Breakdown</CardTitle>
-      </CardHeader>
-      <CardContent className="h-72">
-        <ResponsiveContainer width="100%" height="100%">
-          <RadarChart data={radarData}>
-            <PolarGrid stroke="#cbd5e1" />
-            <PolarAngleAxis dataKey="skill" tick={{ fontSize: 12, fill: "#334155" }} />
-            <Radar dataKey="score" stroke="hsl(245 58% 51%)" fill="hsl(245 58% 51%)" fillOpacity={0.25} />
-          </RadarChart>
-        </ResponsiveContainer>
-      </CardContent>
-    </Card>
-  );
-}
-
-function ContinuePractice() {
-  const completed = 3;
-  const total = 10;
-  const progress = (completed / total) * 100;
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Continue Practice</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <p className="text-sm text-slate-500">Last topic</p>
-          <p className="text-base font-semibold text-slate-900">Dynamic Programming</p>
-        </div>
-        <div>
-          <div className="mb-2 flex items-center justify-between text-sm text-slate-600">
-            <span>Progress</span>
-            <span>
-              {completed}/{total} completed
-            </span>
-          </div>
-          <div className="h-2 rounded-full bg-slate-200">
-            <div className="h-2 rounded-full bg-primary transition-all duration-500 ease-in-out" style={{ width: `${progress}%` }} />
-          </div>
-        </div>
-        <button className="inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary/90">
-          Continue
-        </button>
-      </CardContent>
-    </Card>
-  );
-}
-
-function WeeklyGoals() {
-  const solved = 12;
-  const goal = 20;
-  const progress = (solved / goal) * 100;
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Weekly Goals</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between text-sm text-slate-600">
-          <span>Problems Solved: 12/20 this week</span>
-          <span>{Math.round(progress)}%</span>
-        </div>
-        <div className="h-2 rounded-full bg-slate-200">
-          <div className="h-2 rounded-full bg-primary transition-all duration-500 ease-in-out" style={{ width: `${progress}%` }} />
-        </div>
-        <div className="flex items-center gap-2">
-          {weekDays.map((entry) => (
-            <div key={entry.day} className="flex flex-col items-center gap-1">
-              <span
-                className={`h-6 w-6 rounded-full border border-slate-300 ${entry.active ? "bg-primary border-primary" : "bg-white"}`}
-                aria-label={`${entry.day} activity`}
-              />
-              <span className="text-xs text-slate-500">{entry.day}</span>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function UpcomingAssessments() {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Upcoming Assessments</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ul className="space-y-3">
-          {assessments.map((item) => (
-            <li key={item.title} className="rounded-lg border border-slate-200 p-3">
-              <p className="text-sm font-semibold text-slate-900">{item.title}</p>
-              <p className="text-sm text-slate-600">{item.time}</p>
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-    </Card>
+      ))}
+    </div>
   );
 }
 
 export function DashboardPage() {
+  const navigate = useNavigate();
+  const latest = useMemo(() => getSelectedOrLatestEntry(), []);
+  const [company, setCompany] = useState(latest?.company === "Unknown Company" ? "" : latest?.company || "");
+  const [role, setRole] = useState(latest?.role === "Unspecified Role" ? "" : latest?.role || "");
+  const [jdText, setJdText] = useState(latest?.jdText || "");
+  const [previewSkills, setPreviewSkills] = useState(latest?.extractedSkills || { General: ["General fresher stack"] });
+  const [previewScore, setPreviewScore] = useState(latest?.readinessScore || 35);
+
+  const canAnalyze = jdText.trim().length >= 40;
+
+  function handleAnalyze() {
+    if (!canAnalyze) {
+      return;
+    }
+
+    const analysis = createAnalysisPayload({ company, role, jdText });
+    saveHistoryEntry(analysis);
+    setPreviewSkills(analysis.extractedSkills);
+    setPreviewScore(analysis.readinessScore);
+    navigate(`/results?id=${analysis.id}`);
+  }
+
+  function handleJdInput(value) {
+    setJdText(value);
+    const detected = extractSkills(value);
+    setPreviewSkills(detected);
+  }
+
   return (
-    <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-      <OverallReadiness />
-      <SkillBreakdown />
-      <ContinuePractice />
-      <WeeklyGoals />
-      <div className="lg:col-span-2">
-        <UpcomingAssessments />
+    <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.35fr_1fr]">
+      <Card>
+        <CardHeader>
+          <CardTitle>Analyze Job Description</CardTitle>
+          <p className="text-sm text-slate-600">Paste JD text to extract skills, generate a prep strategy, and save to persistent history.</p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="space-y-2 text-sm text-slate-700">
+              <span>Company</span>
+              <input
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-primary"
+                value={company}
+                onChange={(event) => setCompany(event.target.value)}
+                placeholder="Example: Infosys"
+              />
+            </label>
+            <label className="space-y-2 text-sm text-slate-700">
+              <span>Role</span>
+              <input
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-primary"
+                value={role}
+                onChange={(event) => setRole(event.target.value)}
+                placeholder="Example: SDE Intern"
+              />
+            </label>
+          </div>
+
+          <label className="space-y-2 text-sm text-slate-700">
+            <span>Job Description</span>
+            <textarea
+              className="min-h-[260px] w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-primary"
+              value={jdText}
+              onChange={(event) => handleJdInput(event.target.value)}
+              placeholder="Paste complete JD text here..."
+            />
+          </label>
+
+          <button
+            onClick={handleAnalyze}
+            disabled={!canAnalyze}
+            className="inline-flex rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Analyze and Save
+          </button>
+          {!canAnalyze ? <p className="text-xs text-slate-500">Add at least 40 characters of JD text to enable analysis.</p> : null}
+        </CardContent>
+      </Card>
+
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Overall Readiness</CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center justify-center">
+            <ReadinessRing score={previewScore} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Key Skills Extracted</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <SkillGroups extractedSkills={previewSkills} />
+          </CardContent>
+        </Card>
       </div>
     </section>
   );

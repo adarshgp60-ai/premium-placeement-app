@@ -17,10 +17,6 @@ export function AssessmentsPage() {
   return <PageFrame title="Assessments" />;
 }
 
-export function ResourcesPage() {
-  return <PageFrame title="Resources" />;
-}
-
 export function ProfilePage() {
   return <PageFrame title="Profile" />;
 }

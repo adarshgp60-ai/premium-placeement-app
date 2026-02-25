@@ -5,7 +5,9 @@ import "./index.css";
 import { AppShell } from "./components/AppShell";
 import { LandingPage } from "./pages/LandingPage";
 import { DashboardPage } from "./pages/DashboardPage";
-import { AssessmentsPage, PracticePage, ProfilePage, ResourcesPage } from "./pages/PlaceholderPages";
+import { HistoryPage } from "./pages/HistoryPage";
+import { ResultsPage } from "./pages/ResultsPage";
+import { AssessmentsPage, PracticePage, ProfilePage } from "./pages/PlaceholderPages";
 
 function RouteErrorFallback() {
   const error = useRouteError();
@@ -42,10 +44,16 @@ const router = createBrowserRouter([
       { path: "dashboard", element: <DashboardPage /> },
       { path: "practice", element: <PracticePage /> },
       { path: "assessments", element: <AssessmentsPage /> },
-      { path: "resources", element: <ResourcesPage /> },
+      { path: "resources", element: <HistoryPage /> },
       { path: "profile", element: <ProfilePage /> },
       { path: "*", element: <Navigate to="/app/dashboard" replace /> }
     ]
+  },
+  {
+    path: "/results",
+    element: <AppShell />,
+    errorElement: <RouteErrorFallback />,
+    children: [{ index: true, element: <ResultsPage /> }]
   },
   {
     path: "*",
