@@ -1,3 +1,5 @@
+import React from "react";
+
 function PageFrame({ title }) {
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-8">

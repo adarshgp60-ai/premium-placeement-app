@@ -1,3 +1,4 @@
+import React from "react";
 import { BarChart3, Code2, Video } from "lucide-react";
 import { Link } from "react-router-dom";
 

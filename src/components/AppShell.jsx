@@ -1,3 +1,4 @@
+import React from "react";
 import { BarChart3, BookOpenCheck, ClipboardCheck, LayoutDashboard, UserRound, Video } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 
