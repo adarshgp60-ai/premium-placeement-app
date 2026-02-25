@@ -1,0 +1,107 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KodNest Premium Build System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="top-bar" aria-label="Top Bar">
+      <div class="top-bar__project">KodNest Premium Build System</div>
+      <div class="top-bar__progress" role="status" aria-live="polite">Step 1 / 4</div>
+      <div class="status-badge status-badge--in-progress">In Progress</div>
+    </header>
+
+    <section class="context-header" aria-label="Context Header">
+      <h1>Build With Confidence, Ship With Proof.</h1>
+      <p>A calm workspace and consistent system for shipping high-quality SaaS product increments.</p>
+    </section>
+
+    <main class="workspace-grid" aria-label="Primary Workspace and Secondary Panel">
+      <section class="primary-workspace">
+        <article class="card">
+          <h2>Component Foundation</h2>
+          <p>This workspace demonstrates the production design language only. Product functionality is intentionally not included.</p>
+          <div class="button-row">
+            <button class="btn btn--primary" type="button">Primary Action</button>
+            <button class="btn btn--secondary" type="button">Secondary Action</button>
+          </div>
+        </article>
+
+        <article class="card">
+          <h2>Input Standards</h2>
+          <form class="form-stack" action="#" method="post" novalidate>
+            <label for="taskName">Task Name</label>
+            <input id="taskName" name="taskName" type="text" placeholder="Define task objective" />
+
+            <label for="owner">Owner</label>
+            <input id="owner" name="owner" type="text" placeholder="Product owner" />
+
+            <label for="notes">Notes</label>
+            <textarea id="notes" name="notes" rows="4" placeholder="Add implementation notes"></textarea>
+          </form>
+        </article>
+
+        <article class="card">
+          <h2>State Language</h2>
+          <div class="state-row">
+            <span class="tag tag--success">Logic Working</span>
+            <span class="tag tag--warning">Needs Attention</span>
+          </div>
+          <div class="state-block state-block--error" role="alert">
+            <strong>Build check failed.</strong>
+            <p>The required configuration key is missing. Add the key in settings and run validation again.</p>
+          </div>
+          <div class="state-block state-block--empty">
+            <strong>No proof submitted yet.</strong>
+            <p>Provide a screenshot or test output to complete this step.</p>
+          </div>
+        </article>
+      </section>
+
+      <aside class="secondary-panel" aria-label="Step Guidance">
+        <article class="card card--sticky">
+          <h2>Step Guidance</h2>
+          <p>Describe the exact output you need from the builder and include acceptance criteria.</p>
+
+          <label for="promptBox">Copyable Prompt</label>
+          <textarea id="promptBox" readonly>Implement the next UI section using KodNest tokens and component rules. Keep spacing on the defined scale and provide proof for each checklist item.</textarea>
+
+          <div class="button-col">
+            <button id="copyPrompt" class="btn btn--secondary" type="button">Copy</button>
+            <button class="btn btn--primary" type="button">Build in Lovable</button>
+            <button class="btn btn--secondary" type="button">It Worked</button>
+            <button class="btn btn--secondary" type="button">Error</button>
+            <button class="btn btn--secondary" type="button">Add Screenshot</button>
+          </div>
+          <p id="copyFeedback" class="copy-feedback" aria-live="polite"></p>
+        </article>
+      </aside>
+    </main>
+
+    <footer class="proof-footer" aria-label="Proof Footer">
+      <h2>Proof Checklist</h2>
+      <form class="proof-grid" action="#" method="post" novalidate>
+        <label><input type="checkbox" name="uiBuilt" /> UI Built</label>
+        <input type="text" placeholder="Attach proof" aria-label="UI Built Proof" />
+
+        <label><input type="checkbox" name="logicWorking" /> Logic Working</label>
+        <input type="text" placeholder="Attach proof" aria-label="Logic Working Proof" />
+
+        <label><input type="checkbox" name="testPassed" /> Test Passed</label>
+        <input type="text" placeholder="Attach proof" aria-label="Test Passed Proof" />
+
+        <label><input type="checkbox" name="deployed" /> Deployed</label>
+        <input type="text" placeholder="Attach proof" aria-label="Deployed Proof" />
+      </form>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
